@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
     Bold, Italic, Link2, Code, Quote, Image as ImageIcon,
-    List, Eye, EyeOff, Settings, Copy
+    List, Eye, EyeOff, Settings
 } from 'lucide-react'
 
 interface MarkdownEditorProps {
@@ -53,8 +53,8 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     <button
                         onClick={() => setIsPreview(!isPreview)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isPreview
-                                ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
                     >
                         {isPreview ? <EyeOff size={16} /> : <Eye size={16} />}

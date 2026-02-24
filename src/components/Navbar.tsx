@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Search, User, LogOut } from 'lucide-react'
+import { Search, LogOut } from 'lucide-react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 
 import { signOut } from '@/app/(auth)/actions'

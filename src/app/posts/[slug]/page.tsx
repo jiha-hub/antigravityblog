@@ -7,25 +7,6 @@ import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-interface Post {
-    id: string
-    title: string
-    subtitle: string
-    content: string
-    reading_time: number
-    image_url: string
-    slug: string
-    created_at: string
-    category: {
-        name: string
-        slug: string
-    }
-    author: {
-        full_name: string
-        avatar_url: string
-    } | null
-}
-
 export default async function PostDetailPage({
     params,
 }: {

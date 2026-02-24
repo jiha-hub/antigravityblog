@@ -15,7 +15,7 @@ export default function WritePage() {
     const [imageUrl, setImageUrl] = useState('')
     const [categoryId, setCategoryId] = useState('')
     const [readingTime, setReadingTime] = useState(5)
-    const [categories, setCategories] = useState<any[]>([])
+    const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
     const [isPublishing, setIsPublishing] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -61,8 +61,9 @@ export default function WritePage() {
             const publishedSlug = await publishPost(formData)
             router.push(`/posts/${publishedSlug}`)
             router.refresh()
-        } catch (e: any) {
-            setError(e.message)
+        } catch (e: unknown) {
+            const message = (e as Error).message
+            setError(message)
             setIsPublishing(false)
         }
     }

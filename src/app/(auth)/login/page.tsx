@@ -1,5 +1,6 @@
 import { AuthForm } from '../components/auth-form'
 import { login } from '../actions'
+import Link from 'next/link'
 
 export default async function LoginPage() {
     return (
@@ -13,9 +14,9 @@ export default async function LoginPage() {
                     <span className="text-xl font-bold text-white">DevBlog</span>
                 </div>
                 <nav className="hidden md:flex items-center gap-8 text-slate-400">
-                    <a href="/" className="hover:text-white transition-colors">Home</a>
-                    <a href="#" className="hover:text-white transition-colors">Articles</a>
-                    <a href="#" className="hover:text-white transition-colors">About</a>
+                    <Link href="/" className="hover:text-white transition-colors">Home</Link>
+                    <Link href="#" className="hover:text-white transition-colors">Articles</Link>
+                    <Link href="#" className="hover:text-white transition-colors">About</Link>
                 </nav>
             </header>
 
