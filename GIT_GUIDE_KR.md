@@ -1,32 +1,39 @@
-# Git 리모트 설정 및 안내
+# 🚀 깃허브 배포 마스터 가이드
 
-이미 `origin`이라는 이름의 리모트 설정이 존재해서 오류가 발생했습니다. 제가 기존의 `origin` 주소를 새 저장소 주소로 업데이트해 두었습니다.
+아래 단계를 **순서대로 하나씩** 따라하시면 성공적으로 배포할 수 있습니다.
 
-## 해결 방법
+### 1단계: 변경사항 저장 (매우 중요!)
+현재 수정 중인 파일들을 먼저 깃에 등록해야 합니다.
+```powershell
+git add .
+git commit -m "가이드 업데이트 및 코드 정리"
+```
 
-이미 `origin`이 존재할 때는 `git remote add` 대신 아래 명령어를 사용해야 합니다:
-
+### 2단계: 깃허브 저장소 연결 확인 (이미 되어 있지만 확인용)
 ```powershell
 git remote set-url origin https://github.com/jiha-hub/antigravityblog
 ```
 
-## 다음 단계
+### 3단계: 깃허브의 변경사항과 내 코드 합치기
+이 과정에서 `non-fast-forward` 관련 오류를 방지합니다.
+```powershell
+git pull origin main --rebase --allow-unrelated-histories
+```
+> [!TIP]
+> 만약 여기서 'README.md' 충돌 메시지가 나오면, 제가 이미 해결해 두었으니 다음 명령어를 입력하세요:
+> `git add README.md`
+> `git rebase --continue`
 
-이제 코드를 깃허브에 올리시려면 다음 명령어를 순서대로 입력하세요:
+### 4단계: 최종 푸시 (배포 완료!)
+```powershell
+git push -u origin main
+```
 
-1. **파일 업로드 준비:**
-   ```powershell
-   git add .
-   ```
+---
 
-2. **커밋 메시지 작성:**
-   ```powershell
-   git commit -m "Initial commit"
-   ```
+### 💡 자주 발생하는 오류 해결
+**"You have unstaged changes" 오류가 난다면?**
+- 1단계를 거치지 않아서 그렇습니다. 반드시 `git add .`과 `git commit`을 먼저 해주세요.
 
-3. **최종 푸시:**
-   ```powershell
-   git push -u origin main
-   ```
-
-현재 브랜치가 `main`인 것을 확인했습니다. 만약 다른 브랜치를 사용하신다면 `main` 대신 해당 브랜치 이름을 적어주세요.
+**"rejected (non-fast-forward)" 오류가 난다면?**
+- 3단계(`git pull ...`)를 건너뛰어서 그렇습니다. 3단계를 먼저 실행해 주세요.
