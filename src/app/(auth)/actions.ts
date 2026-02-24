@@ -4,11 +4,20 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
-export async function login(formData: FormData) {
+export type AuthState = {
+    message: string | null
+    error: boolean
+}
+
+export async function login(prevState: AuthState, formData: FormData): Promise<AuthState> {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+
+    if (!email || !password) {
+        return { message: '이메일과 비밀번호를 입력해주세요.', error: true }
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -16,14 +25,14 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+        return { message: error.message, error: true }
     }
 
     revalidatePath('/', 'layout')
-    return redirect('/')
+    redirect('/')
 }
 
-export async function signup(formData: FormData) {
+export async function signup(prevState: AuthState, formData: FormData): Promise<AuthState> {
     console.log('Signup action started...')
     const supabase = await createClient()
 
@@ -31,9 +40,17 @@ export async function signup(formData: FormData) {
     const password = formData.get('password') as string
     const full_name = formData.get('full_name') as string
 
+    if (!email || !password || !full_name) {
+        return { message: '모든 필드를 입력해주세요.', error: true }
+    }
+
+    if (password.length < 6) {
+        return { message: '비밀번호는 최소 6자 이상이어야 합니다.', error: true }
+    }
+
     try {
         console.log('Attempting Supabase signUp for:', email)
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -46,17 +63,17 @@ export async function signup(formData: FormData) {
 
         if (error) {
             console.error('Supabase signup error:', error.message)
-            return redirect(`/signup?message=${encodeURIComponent(error.message)}`)
+            return { message: error.message, error: true }
         }
 
         console.log('Signup successful for:', email)
-        return redirect('/login?message=회원가입 확인 메일이 발송되었습니다.')
+        return { message: '회원가입 확인 메일이 발송되었습니다. 이메일을 확인해주세요.', error: false }
     } catch (err) {
         console.error('Unhandled signup exception:', err)
         if (err instanceof Error && err.message.includes('NEXT_REDIRECT')) {
             throw err
         }
-        return redirect(`/signup?message=서버 오류가 발생했습니다. 다시 시도해주세요.`)
+        return { message: '서버 오류가 발생했습니다. 다시 시도해주세요.', error: true }
     }
 }
 

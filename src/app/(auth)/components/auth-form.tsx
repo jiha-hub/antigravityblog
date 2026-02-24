@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import React, { useState, useActionState } from 'react'
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useFormStatus } from 'react-dom'
+import { AuthState } from '../actions'
 
 interface AuthFormProps {
     type: 'login' | 'signup'
-    onSubmit: (formData: FormData) => Promise<void> | void
+    action: (prevState: AuthState, formData: FormData) => Promise<AuthState>
 }
 
 function SubmitButton({ label }: { label: string }) {
@@ -17,15 +18,21 @@ function SubmitButton({ label }: { label: string }) {
         <button
             type="submit"
             disabled={pending}
-            className="w-full py-3 px-4 bg-primary-blue hover:bg-primary-blue-hover text-white font-semibold rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+            className="w-full py-3 px-4 bg-primary-blue hover:bg-primary-blue-hover text-white font-semibold rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 shadow-lg shadow-blue-500/20"
         >
             {pending ? <Loader2 className="animate-spin mr-2" size={20} /> : label}
         </button>
     )
 }
 
-export function AuthForm({ type, onSubmit }: AuthFormProps) {
+const initialState: AuthState = {
+    message: null,
+    error: false,
+}
+
+export function AuthForm({ type, action }: AuthFormProps) {
     const [showPassword, setShowPassword] = useState(false)
+    const [state, formAction] = useActionState(action, initialState)
 
     const title = type === 'login' ? '다시 오신 것을 환영합니다' : '계정 만들기'
     const subtitle = type === 'login'
@@ -37,11 +44,21 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
     const toggleHref = type === 'login' ? '/signup' : '/login'
 
     return (
-        <div className="w-full max-w-[480px] p-8 rounded-2xl glass-card flex flex-col items-center">
-            <h1 className="text-3xl font-bold mb-2 text-center">{title}</h1>
+        <div className="w-full max-w-[480px] p-8 rounded-2xl glass-card flex flex-col items-center border border-white/10 shadow-2xl">
+            <h1 className="text-3xl font-bold mb-2 text-center text-white">{title}</h1>
             <p className="text-slate-400 mb-8 text-center">{subtitle}</p>
 
-            <form action={onSubmit} className="w-full space-y-6">
+            {state.message && (
+                <div className={`w-full p-4 rounded-xl mb-6 flex items-start gap-3 border ${state.error
+                        ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    }`}>
+                    {state.error ? <AlertCircle size={20} className="shrink-0 mt-0.5" /> : <CheckCircle2 size={20} className="shrink-0 mt-0.5" />}
+                    <span className="text-sm font-medium">{state.message}</span>
+                </div>
+            )}
+
+            <form action={formAction} className="w-full space-y-6">
                 {type === 'signup' && (
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-300" htmlFor="full_name">이름</label>
@@ -51,7 +68,7 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
                             type="text"
                             placeholder="홍길동"
                             required
-                            className="w-full px-4 py-3 rounded-lg input-field"
+                            className="w-full px-4 py-3 rounded-lg input-field bg-slate-900/50 border border-white/10 focus:border-primary-blue outline-none transition-all text-white"
                         />
                     </div>
                 )}
@@ -64,7 +81,7 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
                         type="email"
                         placeholder="name@example.com"
                         required
-                        className="w-full px-4 py-3 rounded-lg input-field"
+                        className="w-full px-4 py-3 rounded-lg input-field bg-slate-900/50 border border-white/10 focus:border-primary-blue outline-none transition-all text-white"
                     />
                 </div>
 
@@ -82,9 +99,10 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
                             id="password"
                             name="password"
                             type={showPassword ? 'text' : 'password'}
-                            placeholder="Enter your password"
+                            placeholder="6자 이상 입력해주세요"
                             required
-                            className="w-full px-4 py-3 rounded-lg input-field pr-12"
+                            minLength={6}
+                            className="w-full px-4 py-3 rounded-lg input-field bg-slate-900/50 border border-white/10 focus:border-primary-blue outline-none transition-all text-white pr-12"
                         />
                         <button
                             type="button"
