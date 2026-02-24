@@ -29,11 +29,14 @@ git pull origin main --rebase --allow-unrelated-histories
 git push -u origin main
 ```
 
----
-
 ### 💡 자주 발생하는 오류 해결
 **"You have unstaged changes" 오류가 난다면?**
 - 1단계를 거치지 않아서 그렇습니다. 반드시 `git add .`과 `git commit`을 먼저 해주세요.
 
 **"rejected (non-fast-forward)" 오류가 난다면?**
 - 3단계(`git pull ...`)를 건너뛰어서 그렇습니다. 3단계를 먼저 실행해 주세요.
+
+**"Application error (405)"가 발생한다면?**
+1. **환경 변수 체크**: Vercel 설정에서 `NEXT_PUBLIC_SITE_URL`이 정확한지 확인하세요. (예: `https://...vercel.app` - 끝에 `/`가 없어야 합니다.)
+2. **배포 로그 확인**: Vercel 대시보드의 **Logs** 탭에서 빨간색 에러 메시지가 있는지 확인해 보세요.
+3. **새로고침**: 환경 변수를 고쳤다면 반드시 **Redeploy**를 수행해야 합니다.

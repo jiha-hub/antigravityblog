@@ -15,7 +15,9 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        request.cookies.set(name, value)
+                    )
                     supabaseResponse = NextResponse.next({
                         request,
                     })
@@ -27,8 +29,9 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // 중요: createServerClient와 supabase.auth.getUser() 사이에서 
-    // 정보를 공유하지 마세요. getUser()를 호출하면 Auth 세션이 갱신됩니다.
+    // IMPORTANT: Avoid writing any logic between createServerClient and
+    // supabase.auth.getUser(). A simple mistake can make it very hard to debug
+    // why user sessions are not being restored.
 
     const {
         data: { user },
