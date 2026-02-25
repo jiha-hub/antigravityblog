@@ -20,7 +20,7 @@ export async function publishPost(formData: FormData) {
     const title = formData.get('title') as string
     const subtitle = formData.get('subtitle') as string
     const content = formData.get('content') as string
-    const rawSlug = (formData.get('slug') as string)?.trim()
+    const rawSlug = (formData.get('slug') as string)?.trim().toLowerCase()
     const slug = rawSlug || `post-${Date.now()}` // always ensure a valid slug
     const image_url = formData.get('image_url') as string
     const category_id = formData.get('category_id') as string

@@ -26,7 +26,7 @@ export default async function PostDetailPage({
     const { data: { user } } = await supabase.auth.getUser()
 
     // Main post query — no nested tag join to keep it reliable
-    const { data: post, error: postError } = await supabase
+    const { data: rawPost, error: postError } = await supabase
         .from('posts')
         .select(`
           *,
@@ -40,9 +40,16 @@ export default async function PostDetailPage({
         console.error(`[PostDetail] Query error for slug "${slug}":`, postError)
     }
 
-    if (!post) {
+    if (!rawPost) {
         console.warn(`[PostDetail] Post NOT FOUND for slug: "${slug}"`)
         notFound()
+    }
+
+    // Normalize post data: convert joined arrays to single objects if needed
+    const post = {
+        ...rawPost,
+        category: Array.isArray(rawPost.category) ? rawPost.category[0] : rawPost.category,
+        author: Array.isArray(rawPost.author) ? rawPost.author[0] : rawPost.author
     }
 
     console.log(`[PostDetail] Successfully found post: "${post.title}" (ID: ${post.id})`)
