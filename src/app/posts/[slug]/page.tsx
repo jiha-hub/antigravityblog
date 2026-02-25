@@ -19,18 +19,18 @@ export default async function PostDetailPage({
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    const { data: post } = await supabase
+    // Main post query — no nested tag join to keep it reliable
+    const { data: post, error: postError } = await supabase
         .from('posts')
         .select(`
           *,
           category:categories(name, slug),
-          author:profiles(full_name, avatar_url),
-          tags:post_tags(tag:tags(name, slug))
+          author:profiles(full_name, avatar_url)
         `)
         .eq('slug', slug)
         .single()
 
-    if (!post) {
+    if (postError || !post) {
         notFound()
     }
 
@@ -72,7 +72,17 @@ export default async function PostDetailPage({
         }
     })
 
-    const tags = post.tags?.map((t: { tag: { name: string; slug: string } }) => t.tag) || []
+    // Fetch tags separately to avoid nested join failures
+    const { data: postTagsData } = await supabase
+        .from('post_tags')
+        .select('tag:tags(name, slug)')
+        .eq('post_id', post.id)
+
+    const tags = (postTagsData || []).map((pt: { tag: unknown }) => {
+        const t = pt.tag as { name: string; slug: string } | { name: string; slug: string }[] | null
+        if (!t) return null
+        return Array.isArray(t) ? t[0] : t
+    }).filter(Boolean) as { name: string; slug: string }[]
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
