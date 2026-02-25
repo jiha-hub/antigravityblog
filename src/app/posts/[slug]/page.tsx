@@ -1,4 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
+
+// Always render fresh — prevents Next.js fetch cache returning stale 404 for newly published posts
+export const dynamic = 'force-dynamic'
+
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ShareButtons from '@/components/ShareButtons'
