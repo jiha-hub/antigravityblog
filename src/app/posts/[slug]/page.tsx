@@ -21,6 +21,8 @@ export default async function PostDetailPage({
     const { slug } = await params
     const supabase = await createClient()
 
+    console.log(`[PostDetail] Attempting to fetch post with slug: "${slug}"`)
+
     const { data: { user } } = await supabase.auth.getUser()
 
     // Main post query — no nested tag join to keep it reliable
@@ -34,9 +36,16 @@ export default async function PostDetailPage({
         .eq('slug', slug)
         .single()
 
-    if (postError || !post) {
+    if (postError) {
+        console.error(`[PostDetail] Query error for slug "${slug}":`, postError)
+    }
+
+    if (!post) {
+        console.warn(`[PostDetail] Post NOT FOUND for slug: "${slug}"`)
         notFound()
     }
+
+    console.log(`[PostDetail] Successfully found post: "${post.title}" (ID: ${post.id})`)
 
     // Fetch all secondary data in parallel — each is safely isolated
     const postId = post.id as string

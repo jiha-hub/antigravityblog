@@ -80,7 +80,7 @@ export default function WritePage() {
             formData.append('tags', tags.join(','))
 
             const publishedSlug = await publishPost(formData)
-            router.push(`/posts/${publishedSlug}`)
+            router.push(`/posts/${encodeURIComponent(publishedSlug)}`)
             router.refresh()
         } catch (e: unknown) {
             const message = (e as Error).message

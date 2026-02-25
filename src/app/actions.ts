@@ -27,6 +27,11 @@ export async function publishPost(formData: FormData) {
     const reading_time = parseInt(formData.get('reading_time') as string)
     const tagsRaw = formData.get('tags') as string
 
+    console.log('--- Publishing Post Started ---')
+    console.log('Title:', title)
+    console.log('Original Slug:', rawSlug)
+    console.log('Final Slug:', slug)
+
     const { data: post, error } = await supabase
         .from('posts')
         .insert([
@@ -41,16 +46,21 @@ export async function publishPost(formData: FormData) {
                 author_id: user.id,
             },
         ])
-        .select('id')
+        .select('id, slug')
         .single()
 
     if (error || !post) {
+        console.error('Publish Error:', error)
         throw new Error(`발행 중 오류가 발생했습니다: ${error?.message}`)
     }
+
+    console.log('Inserted Post ID:', post.id)
+    console.log('Inserted Post Slug:', post.slug)
 
     // Handle tags
     if (tagsRaw?.trim()) {
         const tagNames = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+        console.log('Processing tags:', tagNames)
 
         for (const name of tagNames) {
             const tagSlug = name.replace(/\s+/g, '-')
@@ -68,8 +78,12 @@ export async function publishPost(formData: FormData) {
         }
     }
 
+    console.log('Revalidating paths...')
     revalidatePath('/')
-    return slug
+    revalidatePath(`/posts/${post.slug}`) // Force clear cache for this specific post
+    console.log('--- Publishing Post Success ---')
+
+    return post.slug
 }
 
 export async function addComment(postId: string, content: string) {
