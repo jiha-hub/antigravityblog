@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCategories, publishPost } from '@/app/actions'
-import { ChevronRight, Save, Send, AlertCircle, ImageIcon } from 'lucide-react'
+import { ChevronRight, Save, Send, AlertCircle, ImageIcon, X, Tag } from 'lucide-react'
 import MarkdownEditor from '@/components/MarkdownEditor'
 
 export default function WritePage() {
@@ -18,6 +18,8 @@ export default function WritePage() {
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
     const [isPublishing, setIsPublishing] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [tags, setTags] = useState<string[]>([])
+    const [tagInput, setTagInput] = useState('')
 
     useEffect(() => {
         const loadCategories = async () => {
@@ -28,7 +30,6 @@ export default function WritePage() {
         loadCategories()
     }, [])
 
-    // Automatically generate slug from title
     useEffect(() => {
         const generatedSlug = title
             .toLowerCase()
@@ -39,9 +40,26 @@ export default function WritePage() {
         setSlug(generatedSlug)
     }, [title])
 
+    const addTag = () => {
+        const tag = tagInput.trim().toLowerCase().replace(/\s+/g, '-')
+        if (tag && !tags.includes(tag) && tags.length < 10) {
+            setTags([...tags, tag])
+        }
+        setTagInput('')
+    }
+
+    const removeTag = (tag: string) => setTags(tags.filter(t => t !== tag))
+
+    const handleTagKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault()
+            addTag()
+        }
+    }
+
     const handlePublish = async () => {
         if (!title || !content || !categoryId || !slug) {
-            setError('모든 필수 정보를 입력해 주세요 (제목, 내용, 카테고리, 슬러그).')
+            setError('모든 필수 정보를 입력해 주세요 (제목, 내용, 카테고리).')
             return
         }
 
@@ -57,6 +75,7 @@ export default function WritePage() {
             formData.append('image_url', imageUrl)
             formData.append('category_id', categoryId)
             formData.append('reading_time', readingTime.toString())
+            formData.append('tags', tags.join(','))
 
             const publishedSlug = await publishPost(formData)
             router.push(`/posts/${publishedSlug}`)
@@ -85,13 +104,9 @@ export default function WritePage() {
                                 <span className="font-bold text-white">DevBlog</span>
                             </div>
                             <ChevronRight size={14} className="text-slate-600" />
-                            <span>임시 저장</span>
-                            <ChevronRight size={14} className="text-slate-600" />
                             <span className="text-white">새 글 작성</span>
                         </div>
-
                         <div className="flex items-center gap-3">
-                            <span className="text-xs text-slate-500 mr-2 hidden sm:inline">방금 전 저장됨</span>
                             <button className="flex items-center gap-2 rounded-lg bg-slate-900 border border-border px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
                                 <Save size={16} />
                                 <span>임시 저장</span>
@@ -108,9 +123,6 @@ export default function WritePage() {
                                 )}
                                 <span>발행하기</span>
                             </button>
-                            <div className="h-8 w-8 rounded-full bg-slate-800 overflow-hidden ml-2">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" alt="Profile" />
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,7 +136,6 @@ export default function WritePage() {
                     </div>
                 )}
 
-                {/* Title & Metadata Area */}
                 <div className="space-y-6 mb-8">
                     <input
                         type="text"
@@ -142,7 +153,8 @@ export default function WritePage() {
                     />
 
                     <div className="flex flex-wrap gap-6 pt-4">
-                        <div className="flex-1 min-w-[200px] space-y-2">
+                        {/* 카테고리 */}
+                        <div className="flex-1 min-w-[180px] space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">카테고리</label>
                             <select
                                 value={categoryId}
@@ -154,8 +166,10 @@ export default function WritePage() {
                                 ))}
                             </select>
                         </div>
-                        <div className="flex-1 min-w-[200px] space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">커스텀 슬러그</label>
+
+                        {/* 슬러그 */}
+                        <div className="flex-1 min-w-[180px] space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">슬러그 (URL)</label>
                             <input
                                 type="text"
                                 value={slug}
@@ -163,7 +177,9 @@ export default function WritePage() {
                                 className="w-full bg-slate-900 border border-border rounded-lg px-4 py-2 text-sm text-white focus:border-primary-blue outline-none"
                             />
                         </div>
-                        <div className="flex-1 min-w-[200px] space-y-2">
+
+                        {/* 섬네일 이미지 URL */}
+                        <div className="flex-1 min-w-[180px] space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
                                 <ImageIcon size={12} />
                                 섬네일 이미지 URL
@@ -176,8 +192,10 @@ export default function WritePage() {
                                 className="w-full bg-slate-900 border border-border rounded-lg px-4 py-2 text-sm text-white focus:border-primary-blue outline-none"
                             />
                         </div>
-                        <div className="w-32 space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">읽기 시간 (분)</label>
+
+                        {/* 읽기 시간 */}
+                        <div className="w-28 space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">읽기 시간</label>
                             <input
                                 type="number"
                                 value={readingTime}
@@ -186,9 +204,39 @@ export default function WritePage() {
                             />
                         </div>
                     </div>
+
+                    {/* 태그 */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                            <Tag size={12} />
+                            태그 (Enter 또는 쉼표로 추가, 최대 10개)
+                        </label>
+                        <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-slate-900 px-3 py-2 min-h-[44px]">
+                            {tags.map(tag => (
+                                <span
+                                    key={tag}
+                                    className="flex items-center gap-1 rounded-full bg-primary-blue/10 px-3 py-1 text-xs font-medium text-blue-300"
+                                >
+                                    #{tag}
+                                    <button onClick={() => removeTag(tag)} className="text-blue-400 hover:text-white">
+                                        <X size={12} />
+                                    </button>
+                                </span>
+                            ))}
+                            <input
+                                type="text"
+                                value={tagInput}
+                                onChange={(e) => setTagInput(e.target.value)}
+                                onKeyDown={handleTagKeyDown}
+                                onBlur={addTag}
+                                placeholder={tags.length === 0 ? "태그 입력..." : ""}
+                                className="flex-1 min-w-[120px] bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                {/* Editor component */}
+                {/* Editor */}
                 <div className="flex-1 min-h-[500px]">
                     <MarkdownEditor content={content} onChange={setContent} />
                 </div>

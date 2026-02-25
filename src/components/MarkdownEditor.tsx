@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
     Bold, Italic, Link2, Code, Quote, Image as ImageIcon,
-    List, Eye, EyeOff, Settings
+    List, Eye, EyeOff, Settings, Loader2
 } from 'lucide-react'
+import { uploadImage } from '@/app/actions'
 
 interface MarkdownEditorProps {
     content: string
@@ -14,6 +15,8 @@ interface MarkdownEditorProps {
 
 export default function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
     const [isPreview, setIsPreview] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const insertText = (before: string, after: string = '') => {
         const textarea = document.getElementById('markdown-editor') as HTMLTextAreaElement
@@ -27,11 +30,26 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
         const newText = text.substring(0, start) + before + selectedText + after + text.substring(end)
         onChange(newText)
 
-        // Focus back and set selection
         setTimeout(() => {
             textarea.focus()
             textarea.setSelectionRange(start + before.length, end + before.length)
         }, 0)
+    }
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        try {
+            const url = await uploadImage(file)
+            insertText(`![${file.name}](${url})`)
+        } catch (err) {
+            alert((err as Error).message || '이미지 업로드에 실패했습니다.')
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
     }
 
     return (
@@ -45,7 +63,24 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     <div className="w-px h-4 bg-border mx-1" />
                     <button onClick={() => insertText('`', '`')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="코드"><Code size={18} /></button>
                     <button onClick={() => insertText('> ')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="인용구"><Quote size={18} /></button>
-                    <button onClick={() => insertText('![alt](', ')')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="이미지"><ImageIcon size={18} /></button>
+
+                    {/* Image Upload Button */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors disabled:opacity-50"
+                        title="이미지 업로드"
+                    >
+                        {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                    />
+
                     <button onClick={() => insertText('- ')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="리스트"><List size={18} /></button>
                 </div>
 

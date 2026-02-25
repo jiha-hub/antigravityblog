@@ -2,7 +2,9 @@ import { createClient } from '@/utils/supabase/server'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ShareButtons from '@/components/ShareButtons'
-import { Clock, Calendar, ChevronLeft, MessageSquare, Heart, Copy, Image as ImageIcon } from 'lucide-react'
+import LikeButton from '@/components/LikeButton'
+import CommentSection from '@/components/CommentSection'
+import { Clock, Calendar, ChevronLeft, Image as ImageIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -22,7 +24,8 @@ export default async function PostDetailPage({
         .select(`
           *,
           category:categories(name, slug),
-          author:profiles(full_name, avatar_url)
+          author:profiles(full_name, avatar_url),
+          tags:post_tags(tag:tags(name, slug))
         `)
         .eq('slug', slug)
         .single()
@@ -30,6 +33,35 @@ export default async function PostDetailPage({
     if (!post) {
         notFound()
     }
+
+    // Fetch likes count and whether current user liked this post
+    const { count: likeCount } = await supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', post.id)
+
+    let userLiked = false
+    if (user) {
+        const { data: likeData } = await supabase
+            .from('likes')
+            .select('post_id')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        userLiked = !!likeData
+    }
+
+    // Fetch comments with author profiles
+    const { data: comments } = await supabase
+        .from('comments')
+        .select(`
+            id, content, created_at,
+            author:profiles(full_name, avatar_url)
+        `)
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true })
+
+    const tags = post.tags?.map((t: { tag: { name: string; slug: string } }) => t.tag) || []
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -46,21 +78,23 @@ export default async function PostDetailPage({
                 </Link>
 
                 <div className="flex flex-col gap-12 lg:flex-row">
-                    {/* Share Sidebar - Hidden on mobile */}
+                    {/* Share Sidebar */}
                     <div className="hidden lg:block lg:w-16">
                         <div className="sticky top-28">
                             <ShareButtons />
                         </div>
                     </div>
 
-                    {/* Main Content Area */}
+                    {/* Main Content */}
                     <div className="max-w-4xl flex-1">
-                        {/* Header Section */}
+                        {/* Header */}
                         <div className="mb-12">
-                            <div className="mb-6 flex items-center gap-3">
-                                <span className="rounded-full bg-primary-blue/10 px-4 py-1.5 text-xs font-bold text-primary-blue uppercase tracking-wider">
-                                    {post.category?.name}
-                                </span>
+                            <div className="mb-6 flex flex-wrap items-center gap-3">
+                                {post.category?.name && (
+                                    <span className="rounded-full bg-primary-blue/10 px-4 py-1.5 text-xs font-bold text-primary-blue uppercase tracking-wider">
+                                        {post.category.name}
+                                    </span>
+                                )}
                                 <div className="flex items-center gap-1.5 text-xs text-slate-500">
                                     <Clock className="h-3.5 w-3.5" />
                                     <span>{post.reading_time}분 읽기</span>
@@ -77,49 +111,34 @@ export default async function PostDetailPage({
                             <p className="text-xl leading-relaxed text-slate-400 sm:text-2xl">
                                 {post.subtitle}
                             </p>
+
+                            {/* Tags */}
+                            {tags.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {tags.map((tag: { name: string; slug: string }) => (
+                                        <span key={tag.slug} className="rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-400">
+                                            #{tag.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
+                        {/* Author / Actions Bar */}
                         <div className="flex flex-wrap items-center justify-between gap-6 border-y border-border py-6">
                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-800 flex items-center justify-center">
-                                    {post.author?.avatar_url ? (
-                                        <img
-                                            src={post.author.avatar_url}
-                                            alt={post.author.full_name || 'Author'}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-bold text-slate-500">
-                                            {post.author?.full_name?.charAt(0) || '?'}
-                                        </div>
-                                    )}
+                                <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-800 flex items-center justify-center text-2xl">
+                                    {post.author?.avatar_url || '🧑‍💻'}
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-1.5 font-bold text-white">
                                         {post.author?.full_name || '익명 사용자'}
-                                        <div className="h-4 w-4 rounded-full bg-primary-blue p-0.5 text-white">
-                                            <svg fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                                        </div>
                                     </div>
-                                    <div className="text-sm text-slate-500">Software Engineer</div>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <button className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-slate-900/50 text-slate-400 transition-all hover:bg-slate-800 hover:text-white">
-                                    <Heart className="h-5 w-5" />
-                                </button>
-                                <button className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-slate-900/50 text-slate-400 transition-all hover:bg-slate-800 hover:text-white">
-                                    <MessageSquare className="h-5 w-5" />
-                                </button>
-                                <div className="h-6 w-px bg-border mx-2"></div>
-                                <button className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-slate-900/50 text-slate-400 transition-all hover:bg-slate-800 hover:text-white">
-                                    <Copy className="h-5 w-5" />
-                                </button>
                             </div>
                         </div>
 
-                        {/* Content Section */}
+                        {/* Content */}
                         <div className="mt-12">
                             <div className="mb-12 overflow-hidden rounded-2xl border border-border bg-slate-900/50">
                                 {post.image_url ? (
@@ -141,22 +160,26 @@ export default async function PostDetailPage({
                                 </ReactMarkdown>
                             </div>
 
-                            {/* Interaction Footer */}
+                            {/* Like / Comment Buttons */}
                             <div className="mt-16 flex items-center justify-between border-t border-border pt-8">
                                 <div className="flex items-center gap-4">
-                                    <button className="flex items-center gap-2 rounded-full border border-border bg-slate-900/50 px-4 py-2 text-sm transition-colors hover:bg-pink-500/10 hover:text-pink-500 group">
-                                        <Heart className="h-4 w-4 transition-transform group-hover:scale-110" />
-                                        <span className="font-bold">142</span> 좋아요
-                                    </button>
-                                    <button className="flex items-center gap-2 rounded-full border border-border bg-slate-900/50 px-4 py-2 text-sm transition-colors hover:bg-primary-blue/10 hover:text-primary-blue group">
-                                        <MessageSquare className="h-4 w-4 transition-transform group-hover:scale-110" />
-                                        <span className="font-bold">24개</span> 댓글
-                                    </button>
+                                    <LikeButton
+                                        postId={post.id}
+                                        initialCount={likeCount ?? 0}
+                                        initialLiked={userLiked}
+                                    />
                                 </div>
                                 <div className="text-sm text-slate-500">
                                     이 글이 도움이 되었나요?
                                 </div>
                             </div>
+
+                            {/* Comments */}
+                            <CommentSection
+                                postId={post.id}
+                                comments={comments ?? []}
+                                isLoggedIn={!!user}
+                            />
                         </div>
                     </div>
                 </div>
