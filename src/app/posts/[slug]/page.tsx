@@ -34,51 +34,42 @@ export default async function PostDetailPage({
         notFound()
     }
 
-    // Fetch likes count and whether current user liked this post
-    const { count: likeCount } = await supabase
-        .from('likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('post_id', post.id)
+    // Fetch all secondary data in parallel — each is safely isolated
+    const postId = post.id as string
 
-    let userLiked = false
-    if (user) {
-        const { data: likeData } = await supabase
-            .from('likes')
-            .select('post_id')
-            .eq('post_id', post.id)
-            .eq('user_id', user.id)
-            .maybeSingle()
-        userLiked = !!likeData
-    }
+    const [likeCountResult, userLikedResult, commentsResult, tagsResult] = await Promise.allSettled([
+        // 1. Like count
+        supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId),
+        // 2. Did this user like it?
+        user
+            ? supabase.from('likes').select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        // 3. Comments
+        supabase
+            .from('comments')
+            .select('id, content, created_at, author:profiles(full_name, avatar_url)')
+            .eq('post_id', postId)
+            .order('created_at', { ascending: true }),
+        // 4. Tags
+        supabase.from('post_tags').select('tag:tags(name, slug)').eq('post_id', postId),
+    ])
 
-    // Fetch comments with author profiles
-    const { data: rawComments } = await supabase
-        .from('comments')
-        .select(`
-            id, content, created_at,
-            author:profiles(full_name, avatar_url)
-        `)
-        .eq('post_id', post.id)
-        .order('created_at', { ascending: true })
+    const likeCount = likeCountResult.status === 'fulfilled' ? (likeCountResult.value.count ?? 0) : 0
+    const userLiked = userLikedResult.status === 'fulfilled' ? !!userLikedResult.value.data : false
 
-    // Supabase returns joined tables as arrays; normalise to single object
-    const comments = (rawComments || []).map((c) => {
+    const rawComments = commentsResult.status === 'fulfilled' ? (commentsResult.value.data ?? []) : []
+    const comments = rawComments.map((c: Record<string, unknown>) => {
         const authorArr = c.author as { full_name: string | null; avatar_url: string | null }[] | null
         return {
             id: c.id as string,
             content: c.content as string,
             created_at: c.created_at as string,
-            author: authorArr?.[0] ?? null,
+            author: Array.isArray(authorArr) ? (authorArr[0] ?? null) : null,
         }
     })
 
-    // Fetch tags separately to avoid nested join failures
-    const { data: postTagsData } = await supabase
-        .from('post_tags')
-        .select('tag:tags(name, slug)')
-        .eq('post_id', post.id)
-
-    const tags = (postTagsData || []).map((pt: { tag: unknown }) => {
+    const rawTags = tagsResult.status === 'fulfilled' ? (tagsResult.value.data ?? []) : []
+    const tags = rawTags.map((pt: Record<string, unknown>) => {
         const t = pt.tag as { name: string; slug: string } | { name: string; slug: string }[] | null
         if (!t) return null
         return Array.isArray(t) ? t[0] : t
