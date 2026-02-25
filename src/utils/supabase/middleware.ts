@@ -37,15 +37,13 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // 인증이 필요한 페이지에 대한 보호 로직을 추가할 수 있습니다.
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/auth') &&
-        !request.nextUrl.pathname.startsWith('/signup') &&
-        request.nextUrl.pathname !== '/'
-    ) {
-        // 사용자가 없으면 로그인 페이지로 리다이렉트
+    // 로그인이 필요한 페이지만 보호 (글쓰기, 프로필)
+    const protectedPaths = ['/write', '/profile']
+    const isProtected = protectedPaths.some(p =>
+        request.nextUrl.pathname.startsWith(p)
+    )
+
+    if (!user && isProtected) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
