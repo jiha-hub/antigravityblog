@@ -6,7 +6,7 @@ import {
     Bold, Italic, Link2, Code, Quote, Image as ImageIcon,
     List, Eye, EyeOff, Settings, Loader2
 } from 'lucide-react'
-import { uploadImage } from '@/app/actions'
+import { createClient } from '@/utils/supabase/client'
 
 interface MarkdownEditorProps {
     content: string
@@ -16,6 +16,7 @@ interface MarkdownEditorProps {
 export default function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
     const [isPreview, setIsPreview] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [uploadError, setUploadError] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const insertText = (before: string, after: string = '') => {
@@ -40,12 +41,42 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
         const file = e.target.files?.[0]
         if (!file) return
 
+        // 파일 크기 체크 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setUploadError('이미지는 5MB 이하여야 합니다.')
+            return
+        }
+
         setUploading(true)
+        setUploadError(null)
+
         try {
-            const url = await uploadImage(file)
-            insertText(`![${file.name}](${url})`)
+            const supabase = createClient()
+            const ext = file.name.split('.').pop()
+            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+            const { error } = await supabase.storage
+                .from('post-images')
+                .upload(fileName, file, { upsert: false })
+
+            if (error) throw new Error(error.message)
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('post-images')
+                .getPublicUrl(fileName)
+
+            // 에디터에 이미지 URL 삽입
+            const altText = file.name.replace(/\.[^/.]+$/, '')
+            insertText(`![${altText}](${publicUrl})`)
         } catch (err) {
-            alert((err as Error).message || '이미지 업로드에 실패했습니다.')
+            const msg = (err as Error).message
+            // Storage 버킷이 없으면 URL 입력으로 폴백
+            if (msg.includes('Bucket not found') || msg.includes('bucket')) {
+                setUploadError('Storage 버킷이 설정되지 않았습니다. URL을 직접 입력하거나 Supabase Dashboard에서 "post-images" 버킷을 생성해주세요.')
+                insertText(`![이미지 설명](이미지-URL-여기에-입력)`)
+            } else {
+                setUploadError(`업로드 실패: ${msg}`)
+            }
         } finally {
             setUploading(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -56,7 +87,7 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
         <div className="flex flex-col h-full bg-slate-950/20 rounded-xl border border-border overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-slate-900/50">
-                <div className="flex items-center gap-1 group">
+                <div className="flex items-center gap-1">
                     <button onClick={() => insertText('**', '**')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="굵게"><Bold size={18} /></button>
                     <button onClick={() => insertText('_', '_')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="기울임"><Italic size={18} /></button>
                     <button onClick={() => insertText('[', '](url)')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="링크"><Link2 size={18} /></button>
@@ -64,19 +95,22 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     <button onClick={() => insertText('`', '`')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="코드"><Code size={18} /></button>
                     <button onClick={() => insertText('> ')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors" title="인용구"><Quote size={18} /></button>
 
-                    {/* Image Upload Button */}
+                    {/* 이미지 업로드 버튼 */}
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors disabled:opacity-50"
-                        title="이미지 업로드"
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors disabled:opacity-50 relative"
+                        title="이미지 업로드 (클릭해서 파일 선택)"
                     >
-                        {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+                        {uploading
+                            ? <Loader2 size={18} className="animate-spin text-primary-blue" />
+                            : <ImageIcon size={18} />
+                        }
                     </button>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/gif,image/webp"
                         className="hidden"
                         onChange={handleImageUpload}
                     />
@@ -88,8 +122,8 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     <button
                         onClick={() => setIsPreview(!isPreview)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isPreview
-                            ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
                     >
                         {isPreview ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -101,9 +135,23 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                 </div>
             </div>
 
-            {/* Editor & Preview Area */}
+            {/* 에러 메시지 */}
+            {uploadError && (
+                <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-400">
+                    ⚠️ {uploadError}
+                </div>
+            )}
+
+            {/* 업로드 중 표시 */}
+            {uploading && (
+                <div className="px-4 py-2 bg-blue-500/10 border-b border-blue-500/20 text-xs text-blue-400 flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin" />
+                    이미지 업로드 중...
+                </div>
+            )}
+
+            {/* Editor & Preview */}
             <div className="flex-1 flex overflow-hidden min-h-[500px]">
-                {/* Editor Area */}
                 <div className={`flex-1 flex flex-col ${isPreview ? 'hidden md:flex' : 'flex'}`}>
                     <textarea
                         id="markdown-editor"
@@ -114,7 +162,6 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     />
                 </div>
 
-                {/* Preview Area */}
                 {isPreview && (
                     <div className="flex-1 border-l border-border bg-slate-900/30 overflow-y-auto p-6 prose prose-invert max-w-none">
                         <ReactMarkdown>{content || '*미리보기할 내용이 없습니다.*'}</ReactMarkdown>

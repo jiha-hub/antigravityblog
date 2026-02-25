@@ -19,16 +19,17 @@ export default function Navbar({ user }: { user: SupabaseUser | null }) {
                     </Link>
 
                     {/* Search bar */}
-                    <div className="hidden flex-1 items-center justify-center md:flex max-w-md">
+                    <form method="GET" action="/search" className="hidden flex-1 items-center justify-center md:flex max-w-md">
                         <div className="relative w-full">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="검색..."
+                                name="q"
+                                placeholder="제목, 내용으로 검색..."
                                 className="w-full rounded-xl border border-border bg-slate-900/50 py-2 pl-10 pr-4 text-sm text-foreground outline-none transition-all placeholder:text-slate-500 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                             />
                         </div>
-                    </div>
+                    </form>
 
                     {/* Nav Links & Auth */}
                     <nav className="flex items-center gap-2 sm:gap-6">
