@@ -11,9 +11,10 @@ import { createClient } from '@/utils/supabase/client'
 interface MarkdownEditorProps {
     content: string
     onChange: (content: string) => void
+    onImageUpload?: (url: string) => void
 }
 
-export default function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
+export default function MarkdownEditor({ content, onChange, onImageUpload }: MarkdownEditorProps) {
     const [isPreview, setIsPreview] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [uploadError, setUploadError] = useState<string | null>(null)
@@ -68,6 +69,9 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
             // 에디터에 이미지 URL 삽입
             const altText = file.name.replace(/\.[^/.]+$/, '')
             insertText(`![${altText}](${publicUrl})`)
+
+            // 부모 컴포넌트에게 알림
+            if (onImageUpload) onImageUpload(publicUrl)
         } catch (err) {
             const msg = (err as Error).message
             // Storage 버킷이 없으면 URL 입력으로 폴백
@@ -122,8 +126,8 @@ export default function MarkdownEditor({ content, onChange }: MarkdownEditorProp
                     <button
                         onClick={() => setIsPreview(!isPreview)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isPreview
-                                ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'bg-primary-blue text-white shadow-lg shadow-blue-500/20'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
                     >
                         {isPreview ? <EyeOff size={16} /> : <Eye size={16} />}

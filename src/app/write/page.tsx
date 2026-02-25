@@ -240,7 +240,14 @@ export default function WritePage() {
 
                 {/* Editor */}
                 <div className="flex-1 min-h-[500px]">
-                    <MarkdownEditor content={content} onChange={setContent} />
+                    <MarkdownEditor
+                        content={content}
+                        onChange={setContent}
+                        onImageUpload={(url) => {
+                            // Automatically set as main image if not already set
+                            if (!imageUrl) setImageUrl(url)
+                        }}
+                    />
                 </div>
             </main>
         </div>
