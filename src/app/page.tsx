@@ -48,7 +48,7 @@ export default async function Home({
     .from('posts')
     .select(`
       *,
-      category:categories(name, slug)
+      category:categories!category_id(name, slug)
     `, { count: 'exact' })
 
   if (activeCategory) {

@@ -25,13 +25,13 @@ export default async function PostDetailPage({
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Main post query — no nested tag join to keep it reliable
+    // Main post query — explicitly specify foreign keys to avoid ambiguous relationship error (PGRST201)
     const { data: rawPost, error: postError } = await supabase
         .from('posts')
         .select(`
           *,
-          category:categories(name, slug),
-          author:profiles(full_name, avatar_url)
+          category:categories!category_id(name, slug),
+          author:profiles!author_id(full_name, avatar_url)
         `)
         .eq('slug', slug)
         .single()
@@ -67,7 +67,7 @@ export default async function PostDetailPage({
         // 3. Comments
         supabase
             .from('comments')
-            .select('id, content, created_at, author:profiles(full_name, avatar_url)')
+            .select('id, content, created_at, author:profiles!author_id(full_name, avatar_url)')
             .eq('post_id', postId)
             .order('created_at', { ascending: true }),
         // 4. Tags
