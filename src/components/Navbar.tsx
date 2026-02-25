@@ -39,15 +39,24 @@ export default function Navbar({ user }: { user: SupabaseUser | null }) {
                         </div>
 
                         {user ? (
-                            <form action={signOut} className="flex items-center gap-4">
-                                <button
-                                    type="submit"
-                                    className="flex items-center gap-2 rounded-lg border border-border bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-slate-700 active:scale-95"
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/write"
+                                    className="flex items-center gap-2 rounded-lg bg-primary-blue px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-primary-blue-hover active:scale-95"
                                 >
-                                    <LogOut className="h-4 w-4" />
-                                    <span className="hidden sm:inline">로그아웃</span>
-                                </button>
-                            </form>
+                                    <span>✏️</span>
+                                    <span className="hidden sm:inline">글쓰기</span>
+                                </Link>
+                                <form action={signOut}>
+                                    <button
+                                        type="submit"
+                                        className="flex items-center gap-2 rounded-lg border border-border bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-slate-700 active:scale-95"
+                                    >
+                                        <LogOut className="h-4 w-4" />
+                                        <span className="hidden sm:inline">로그아웃</span>
+                                    </button>
+                                </form>
+                            </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Link
