@@ -41,6 +41,13 @@ export default function Navbar({ user }: { user: SupabaseUser | null }) {
                         {user ? (
                             <div className="flex items-center gap-2">
                                 <Link
+                                    href="/profile"
+                                    className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 border border-border text-lg transition-all hover:bg-slate-700 hover:border-blue-500/50"
+                                    title="프로필 설정"
+                                >
+                                    👤
+                                </Link>
+                                <Link
                                     href="/write"
                                     className="flex items-center gap-2 rounded-lg bg-primary-blue px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-primary-blue-hover active:scale-95"
                                 >
