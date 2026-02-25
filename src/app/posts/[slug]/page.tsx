@@ -52,7 +52,7 @@ export default async function PostDetailPage({
     }
 
     // Fetch comments with author profiles
-    const { data: comments } = await supabase
+    const { data: rawComments } = await supabase
         .from('comments')
         .select(`
             id, content, created_at,
@@ -60,6 +60,17 @@ export default async function PostDetailPage({
         `)
         .eq('post_id', post.id)
         .order('created_at', { ascending: true })
+
+    // Supabase returns joined tables as arrays; normalise to single object
+    const comments = (rawComments || []).map((c) => {
+        const authorArr = c.author as { full_name: string | null; avatar_url: string | null }[] | null
+        return {
+            id: c.id as string,
+            content: c.content as string,
+            created_at: c.created_at as string,
+            author: authorArr?.[0] ?? null,
+        }
+    })
 
     const tags = post.tags?.map((t: { tag: { name: string; slug: string } }) => t.tag) || []
 
