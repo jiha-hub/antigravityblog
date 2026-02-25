@@ -104,16 +104,20 @@ export default async function Home({
         {/* Blog Grid */}
         {posts && posts.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <BlogCard
-                key={post.id}
-                post={{
-                  ...post,
-                  category_name: post.category?.name,
-                  category_slug: post.category?.slug
-                }}
-              />
-            ))}
+            {posts.map((post) => {
+              // Normalize category join data
+              const category = Array.isArray(post.category) ? post.category[0] : post.category
+              return (
+                <BlogCard
+                  key={post.id}
+                  post={{
+                    ...post,
+                    category_name: category?.name,
+                    category_slug: category?.slug
+                  }}
+                />
+              )
+            })}
           </div>
         ) : (
           <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border text-slate-500">
