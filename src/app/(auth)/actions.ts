@@ -67,7 +67,7 @@ export async function signup(prevState: AuthState, formData: FormData): Promise<
         }
 
         console.log('Signup successful for:', email)
-        return { message: '회원가입 확인 메일이 발송되었습니다. 이메일을 확인해주세요.', error: false }
+        return { message: '🎉 회원가입이 완료되었습니다! 로그인 페이지로 이동해주세요.', error: false }
     } catch (err) {
         console.error('Unhandled signup exception:', err)
         if (err instanceof Error && err.message.includes('NEXT_REDIRECT')) {
