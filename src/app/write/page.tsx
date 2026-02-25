@@ -31,13 +31,14 @@ export default function WritePage() {
     }, [])
 
     useEffect(() => {
-        const generatedSlug = title
+        const base = title
             .toLowerCase()
             .trim()
-            .replace(/[^\w\s-]/g, '')
+            .replace(/[^\w\s-]/g, '')  // strip non-ASCII (including Korean)
             .replace(/[\s_-]+/g, '-')
             .replace(/^-+|-+$/g, '')
-        setSlug(generatedSlug)
+        // Fallback for Korean-only titles that produce an empty slug
+        setSlug(base || `post-${Date.now()}`)
     }, [title])
 
     const addTag = () => {
@@ -58,8 +59,9 @@ export default function WritePage() {
     }
 
     const handlePublish = async () => {
-        if (!title || !content || !categoryId || !slug) {
-            setError('모든 필수 정보를 입력해 주세요 (제목, 내용, 카테고리).')
+        const safeSlug = slug?.trim() || `post-${Date.now()}`
+        if (!title || !content || !categoryId) {
+            setError('제목, 내용, 카테고리를 모두 입력해 주세요.')
             return
         }
 
@@ -71,7 +73,7 @@ export default function WritePage() {
             formData.append('title', title)
             formData.append('subtitle', subtitle)
             formData.append('content', content)
-            formData.append('slug', slug)
+            formData.append('slug', safeSlug)
             formData.append('image_url', imageUrl)
             formData.append('category_id', categoryId)
             formData.append('reading_time', readingTime.toString())

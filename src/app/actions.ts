@@ -20,11 +20,12 @@ export async function publishPost(formData: FormData) {
     const title = formData.get('title') as string
     const subtitle = formData.get('subtitle') as string
     const content = formData.get('content') as string
-    const slug = formData.get('slug') as string
+    const rawSlug = (formData.get('slug') as string)?.trim()
+    const slug = rawSlug || `post-${Date.now()}` // always ensure a valid slug
     const image_url = formData.get('image_url') as string
     const category_id = formData.get('category_id') as string
     const reading_time = parseInt(formData.get('reading_time') as string)
-    const tagsRaw = formData.get('tags') as string // comma-separated tag names
+    const tagsRaw = formData.get('tags') as string
 
     const { data: post, error } = await supabase
         .from('posts')
